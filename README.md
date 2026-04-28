@@ -19,7 +19,7 @@ Complete Klipper configuration for the **Snapmaker J1 / J1s** (IDEX 3D printer),
 - **ADC filament sensor** — emulates the stock Snapmaker firmware logic using the PA4 / PA0 optical encoders, auto-pause on jam or auto-switch to backup extruder in BACKUP mode.
 - **PT100 nozzle ADC sensor** — conversion table generated for the Snapmaker voltage divider (`Snapmaker J1 Nozzle`).
 - **Adaptive purge with nozzle wipe** — volumetric flush then purge line (single-head or synchronized MIRROR), followed by a wipe on the silicone pad before parking.
-- **Robust PAUSE / RESUME** — full state save (position, IDEX mode, temperatures, fans) and faithful restore.
+- **Robust PAUSE / RESUME** — full state save (position, gcode offsets, IDEX mode, temperatures, fans) with faithful restore including T0/T1 Z offset. `M600` (filament change) is also supported as an alias.
 - **Filament load/unload** — `LOAD_T0`, `LOAD_T1`, `UNLOAD_T0`, `UNLOAD_T1` macros tuned for the J1s direct drive.
 - **MCU fan control** — progressive electronics bay cooling via `temperature_fan`.
 - **`G1` override** — blocks Z moves before homing to prevent crashes from slicer-injected G1 Z commands.
@@ -42,7 +42,7 @@ printer_data/
 │   └── MCU_temp_fan.cfg     # Electronics bay fan
 │
 └── macros/
-    ├── macros.cfg           # Logging + homing flag + G1 override
+    ├── macros.cfg           # Logging + homing flag + G1 override + M600
     ├── idex.cfg             # COPY / MIRROR / PRIMARY / BACKUP + T0/T1 + M104/M109/M106/M107
     ├── calibration.cfg      # Cross-head Z calibration + nozzle cleaning
     ├── filament.cfg         # LOAD / UNLOAD T0 / T1
@@ -100,6 +100,7 @@ Includes in `printer.cfg` use wildcards:
 | `TEST_SPEED CARRIAGE=0\|1` | Per-carriage safe speed test |
 | `FILAMENT_STATUS` | Display ADC sensor state |
 | `M412 S0\|1` | Enable/disable filament sensor |
+| `M600` | Filament change — alias for `PAUSE` (Z-hop, state save, park) |
 
 ## 🔀 IDEX mode selection from plate name
 
@@ -121,6 +122,32 @@ In BACKUP mode, the standby head is kept at `print_temp − 70 °C` to limit ooz
 - **`Z_OFFSET.t0` / `.t1`**: auto-reloaded from `variables.cfg` 1 s after boot via `[delayed_gcode _LOAD_Z_OFFSETS]`.
 - **`_FILAMENT_VARS`**: ADC threshold (`threshold=15`), max consecutive errors (`max_errors=3`), check distance (`check_distance=2.0` mm).
 - **`_J1_RUNTIME_STATE`**: temperatures and fans memorized for transparent T0/T1 swaps.
+
+## 🖨️ OrcaSlicer configuration
+
+See [OrcaSlicer.md](OrcaSlicer.md) for the complete OrcaSlicer setup guide:
+- Machine profile (bed dimensions, extruder count)
+- Start / End G-Code with correct variable syntax
+- IDEX mode selection by plate name
+- Filament density table for volumetric flush
+- Printer connection (Moonraker)
+
+> 🇫🇷 French version: [OrcaSlicer_FR.md](OrcaSlicer_FR.md)
+
+---
+
+## 🐧 Armbian host optimisations
+
+See [Armbian_Optimisations_EN.md](Armbian_Optimisations_EN.md) for the recommended host tuning applied to the embedded Armbian board:
+- **zram swap** (481 MB compressed, no flash wear)
+- Disabling unnecessary services (NFS, vnstat, unattended-upgrades)
+- journald log size limits
+- `noatime` mount option to reduce flash writes
+- `vm.swappiness=10` sysctl tuning
+
+> 🇫🇷 French version: [Armbian_Optimisations_FR.md](Armbian_Optimisations_FR.md)
+
+---
 
 ## 🗄️ Mainsail UI backup and restore
 

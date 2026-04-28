@@ -19,7 +19,7 @@ Configuration Klipper complète pour la **Snapmaker J1 / J1s** (imprimante 3D ID
 - **Capteur filament ADC** — émulation de la logique firmware Snapmaker stock via les encodeurs optiques PA4 / PA0, avec pause automatique en cas de blocage ou bascule automatique sur la tête backup en mode BACKUP.
 - **Capteur ADC buse PT100** — table de conversion générée pour le pont diviseur Snapmaker (`Snapmaker J1 Nozzle`).
 - **Purge adaptative avec essuyage buse** — flush volumétrique haute température puis ligne de purge (mono-tête ou MIRROR synchronisé), suivi d'un essuyage sur le pad silicone avant le parking.
-- **PAUSE / RESUME robustes** — sauvegarde complète de l'état (position, mode IDEX, températures, fans) et restauration fidèle.
+- **PAUSE / RESUME robustes** — sauvegarde complète de l'état (position, offsets gcode, mode IDEX, températures, fans) et restauration fidèle incluant le Z offset T0/T1. `M600` (changement de filament) est également supporté comme alias.
 - **Chargement / déchargement filament** — macros `LOAD_T0`, `LOAD_T1`, `UNLOAD_T0`, `UNLOAD_T1` calibrées pour le direct drive J1s.
 - **Contrôle fan MCU** — refroidissement progressif du boîtier électronique via `temperature_fan`.
 - **Surcharge `G1`** — blocage des mouvements Z avant homing pour éviter les collisions dues aux G1 Z injectés par le slicer.
@@ -42,7 +42,7 @@ printer_data/
 │   └── MCU_temp_fan.cfg     # Fan boîtier électronique
 │
 └── macros/
-    ├── macros.cfg           # Logging + flag homing + surcharge G1
+    ├── macros.cfg           # Logging + flag homing + surcharge G1 + M600
     ├── idex.cfg             # COPY / MIRROR / PRIMARY / BACKUP + T0/T1 + M104/M109/M106/M107
     ├── calibration.cfg      # Calibration Z inter-têtes + nettoyage buses
     ├── filament.cfg         # LOAD / UNLOAD T0 / T1
@@ -100,6 +100,7 @@ Les includes dans `printer.cfg` utilisent des wildcards :
 | `TEST_SPEED CARRIAGE=0\|1` | Test vitesse sécurisé par chariot |
 | `FILAMENT_STATUS` | Affiche l'état des capteurs ADC |
 | `M412 S0\|1` | Active/désactive le capteur filament |
+| `M600` | Changement de filament — alias de `PAUSE` (Z-hop, sauvegarde état, parking) |
 
 ## 🔀 Sélection du mode IDEX par nom de plateau
 
@@ -121,6 +122,32 @@ En mode BACKUP, la tête en veille est maintenue à `temp_impression − 70 °C`
 - **`Z_OFFSET.t0` / `.t1`** : rechargés automatiquement depuis `variables.cfg` 1 s après le boot via `[delayed_gcode _LOAD_Z_OFFSETS]`.
 - **`_FILAMENT_VARS`** : seuil ADC (`threshold=15`), erreurs max consécutives (`max_errors=3`), distance de check (`check_distance=2.0` mm).
 - **`_J1_RUNTIME_STATE`** : températures et fans mémorisés pour les switchs T0/T1 transparents.
+
+## 🖨️ Configuration OrcaSlicer
+
+Voir [OrcaSlicer_FR.md](OrcaSlicer_FR.md) pour le guide complet de configuration OrcaSlicer :
+- Profil machine (dimensions plateau, nombre d'extrudeurs)
+- Start / End G-Code avec la syntaxe de variables correcte
+- Sélection du mode IDEX par nom de plateau
+- Table de densités filament pour le flush volumétrique
+- Connexion à l'imprimante (Moonraker)
+
+> 🇬🇧 English version: [OrcaSlicer.md](OrcaSlicer.md)
+
+---
+
+## 🐧 Optimisations host Armbian
+
+Voir [Armbian_Optimisations_FR.md](Armbian_Optimisations_FR.md) pour les réglages recommandés sur la carte Armbian embarquée :
+- **zram swap** (481 MB compressé, sans usure de la flash)
+- Désactivation des services inutiles (NFS, vnstat, unattended-upgrades)
+- Limites de taille des logs journald
+- Option de montage `noatime` pour réduire les écritures flash
+- Réglage sysctl `vm.swappiness=10`
+
+> 🇬🇧 English version: [Armbian_Optimisations_EN.md](Armbian_Optimisations_EN.md)
+
+---
 
 ## 🗄️ Sauvegarde et restauration de l'interface Mainsail
 
