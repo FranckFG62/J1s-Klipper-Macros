@@ -32,7 +32,7 @@ Guide de configuration d'OrcaSlicer pour la Snapmaker J1 / J1s avec ce firmware 
 Coller dans **Machine > Start G-Code** :
 
 ```gcode
-START_PRINT BED_TEMP={first_layer_bed_temperature[0]} T0_TEMP={nozzle_temperature_initial_layer[0]} T1_TEMP={nozzle_temperature_initial_layer[1]} PLATE={plate_name} SPACING=165 DENSITY_T0={filament_density[0]} DENSITY_T1={filament_density[1]}
+START_PRINT BED_TEMP={first_layer_bed_temperature[0]} T0_TEMP={is_extruder_used[0] ? nozzle_temperature_initial_layer[0] : 0} T1_TEMP={is_extruder_used[1] ? nozzle_temperature_initial_layer[1] : 0} PLATE={plate_name} SPACING=165 DENSITY_T0={filament_density[0]} DENSITY_T1={filament_density[1]}
 ```
 
 > **Note** : `PLATE={plate_name} transmet le nom du plateau OrcaSlicer à la macro `START_PRINT`, qui s'en sert pour détecter le mode IDEX (voir section 4).
