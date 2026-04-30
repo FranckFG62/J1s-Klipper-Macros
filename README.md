@@ -21,7 +21,7 @@ Complete Klipper configuration for the **Snapmaker J1 / J1s** (IDEX 3D printer),
 - **Adaptive purge with nozzle wipe** — volumetric flush then purge line (single-head or synchronized MIRROR), followed by a wipe on the silicone pad before parking.
 - **Robust PAUSE / RESUME** — full state save (position, gcode offsets, IDEX mode, temperatures, fans) with faithful restore including T0/T1 Z offset. `M600` (filament change) is also supported as an alias.
 - **Filament load/unload** — `LOAD_T0`, `LOAD_T1`, `UNLOAD_T0`, `UNLOAD_T1` macros tuned for the J1s direct drive.
-- **MCU fan control** — progressive electronics bay cooling via `temperature_fan`.
+- **MCU fan control** — pin PC6 drives the enclosure fan automatically via `temperature_fan` (default). Can be switched to a manually-controlled auxiliary fan by swapping the include in `printer.cfg`.
 - **`G1` override** — blocks Z moves before homing to prevent crashes from slicer-injected G1 Z commands.
 
 ## 📁 File layout
@@ -38,26 +38,30 @@ printer_data/
 ├── hardware/
 │   ├── hardware.cfg         # MCU, steppers, extruders, heaters, fans
 │   ├── adc_nozzle_temp.cfg  # Snapmaker PT100 ADC table
-│   ├── filament_sensor.cfg  # ADC-based filament sensor (PA4 / PA0)
-│   └── MCU_temp_fan.cfg     # Electronics bay fan
+│   └── filament_sensor.cfg  # ADC-based filament sensor (PA4 / PA0)
 │
-└── macros/
-    ├── macros.cfg           # Logging + homing flag + G1 override + M600
-    ├── idex.cfg             # COPY / MIRROR / PRIMARY / BACKUP + T0/T1 + M104/M109/M106/M107
-    ├── calibration.cfg      # Cross-head Z calibration + nozzle cleaning
-    ├── filament.cfg         # LOAD / UNLOAD T0 / T1
-    ├── purge.cfg            # Purge lines with post-purge nozzle wipe
-    ├── start_end_pause.cfg  # START_PRINT / END_PRINT / PAUSE / RESUME / CANCEL
-    ├── pid.cfg              # PID_BED / PID_EXTRUDER / PID_EXTRUDER1
-    └── test_speed.cfg       # IDEX-safe speed/accel test
+├── macros/
+│   ├── macros.cfg           # Logging + homing flag + G1 override + M600
+│   ├── idex.cfg             # COPY / MIRROR / PRIMARY / BACKUP + T0/T1 + M104/M109/M106/M107
+│   ├── calibration.cfg      # Cross-head Z calibration + nozzle cleaning
+│   ├── filament.cfg         # LOAD / UNLOAD T0 / T1
+│   ├── purge.cfg            # Purge lines with post-purge nozzle wipe
+│   ├── start_end_pause.cfg  # START_PRINT / END_PRINT / PAUSE / RESUME / CANCEL
+│   ├── pid.cfg              # PID_BED / PID_EXTRUDER / PID_EXTRUDER1
+│   └── test_speed.cfg       # IDEX-safe speed/accel test
+│
+└── Extras/                  # Optional configs — activate via printer.cfg includes
+    ├── MCU_temp_fan.cfg     # Default: enclosure fan on PC6, auto temp control
+    └── MCU_aux_fan.cfg      # Alternative: auxiliary fan on PC6, manual control
 ```
 
-Includes in `printer.cfg` use wildcards:
+Includes in `printer.cfg`:
 
 ```ini
 [include mainsail.cfg]
 [include hardware/*.cfg]
 [include macros/*.cfg]
+[include Extras/MCU_temp_fan.cfg]   # swap with MCU_aux_fan.cfg for auxiliary fan
 ```
 
 ## 🚀 Installation

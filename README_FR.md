@@ -21,7 +21,7 @@ Configuration Klipper complète pour la **Snapmaker J1 / J1s** (imprimante 3D ID
 - **Purge adaptative avec essuyage buse** — flush volumétrique haute température puis ligne de purge (mono-tête ou MIRROR synchronisé), suivi d'un essuyage sur le pad silicone avant le parking.
 - **PAUSE / RESUME robustes** — sauvegarde complète de l'état (position, offsets gcode, mode IDEX, températures, fans) et restauration fidèle incluant le Z offset T0/T1. `M600` (changement de filament) est également supporté comme alias.
 - **Chargement / déchargement filament** — macros `LOAD_T0`, `LOAD_T1`, `UNLOAD_T0`, `UNLOAD_T1` calibrées pour le direct drive J1s.
-- **Contrôle fan MCU** — refroidissement progressif du boîtier électronique via `temperature_fan`.
+- **Contrôle fan MCU** — la broche PC6 pilote le fan du caisson automatiquement via `temperature_fan` (par défaut). Peut être basculé sur un fan auxiliaire à contrôle manuel en changeant l'include dans `printer.cfg`.
 - **Surcharge `G1`** — blocage des mouvements Z avant homing pour éviter les collisions dues aux G1 Z injectés par le slicer.
 
 ## 📁 Arborescence
@@ -38,26 +38,30 @@ printer_data/
 ├── hardware/
 │   ├── hardware.cfg         # MCU, steppers, extruders, heaters, fans
 │   ├── adc_nozzle_temp.cfg  # Table ADC PT100 buse Snapmaker
-│   ├── filament_sensor.cfg  # Capteur filament via ADC (PA4 / PA0)
-│   └── MCU_temp_fan.cfg     # Fan boîtier électronique
+│   └── filament_sensor.cfg  # Capteur filament via ADC (PA4 / PA0)
 │
-└── macros/
-    ├── macros.cfg           # Logging + flag homing + surcharge G1 + M600
-    ├── idex.cfg             # COPY / MIRROR / PRIMARY / BACKUP + T0/T1 + M104/M109/M106/M107
-    ├── calibration.cfg      # Calibration Z inter-têtes + nettoyage buses
-    ├── filament.cfg         # LOAD / UNLOAD T0 / T1
-    ├── purge.cfg            # Lignes de purge avec essuyage buse en fin de purge
-    ├── start_end_pause.cfg  # START_PRINT / END_PRINT / PAUSE / RESUME / CANCEL
-    ├── pid.cfg              # PID_BED / PID_EXTRUDER / PID_EXTRUDER1
-    └── test_speed.cfg       # Test vitesse / accélération sécurisé IDEX
+├── macros/
+│   ├── macros.cfg           # Logging + flag homing + surcharge G1 + M600
+│   ├── idex.cfg             # COPY / MIRROR / PRIMARY / BACKUP + T0/T1 + M104/M109/M106/M107
+│   ├── calibration.cfg      # Calibration Z inter-têtes + nettoyage buses
+│   ├── filament.cfg         # LOAD / UNLOAD T0 / T1
+│   ├── purge.cfg            # Lignes de purge avec essuyage buse en fin de purge
+│   ├── start_end_pause.cfg  # START_PRINT / END_PRINT / PAUSE / RESUME / CANCEL
+│   ├── pid.cfg              # PID_BED / PID_EXTRUDER / PID_EXTRUDER1
+│   └── test_speed.cfg       # Test vitesse / accélération sécurisé IDEX
+│
+└── Extras/                  # Configs optionnelles — activées via les includes de printer.cfg
+    ├── MCU_temp_fan.cfg     # Défaut : fan caisson sur PC6, contrôle automatique par température
+    └── MCU_aux_fan.cfg      # Alternative : fan auxiliaire sur PC6, contrôle manuel
 ```
 
-Les includes dans `printer.cfg` utilisent des wildcards :
+Les includes dans `printer.cfg` :
 
 ```ini
 [include mainsail.cfg]
 [include hardware/*.cfg]
 [include macros/*.cfg]
+[include Extras/MCU_temp_fan.cfg]   # remplacer par MCU_aux_fan.cfg pour le fan auxiliaire
 ```
 
 ## 🚀 Installation
