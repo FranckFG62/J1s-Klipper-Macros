@@ -41,12 +41,55 @@ if [ ! -d "$KLIPPER_DIR/.git" ]; then
 else
     cd "$KLIPPER_DIR"
 
-    # Restore src/Kconfig if modified (may have been changed for RP2040 compilation)
-    if ! git diff --quiet src/Kconfig 2>/dev/null; then
-        git checkout src/Kconfig
-        ok "src/Kconfig restored"
+    # Fix src/Kconfig for the snapmakerj1 fork:
+    #   - src/avr/ was deleted → replace source "src/avr/Kconfig" with src/gd32/Kconfig
+    #   - Add "config MACH_GD32 / bool GD32" to the architecture choice block
+    #     (MACH_AVR must stay in the choice so C code using CONFIG_MACH_AVR=0 still compiles)
+    #   - Apply --skip-worktree so Moonraker never flags this file as dirty
+    if git ls-files --error-unmatch src/Kconfig &>/dev/null; then
+        KCONFIG_CHANGED=0
+
+        # 1. Replace source "src/avr/Kconfig" → source "src/gd32/Kconfig"
+        if [ ! -d "src/avr" ] && grep -q 'src/avr/Kconfig' src/Kconfig; then
+            sed -i 's|source "src/avr/Kconfig"|source "src/gd32/Kconfig"|' src/Kconfig
+            ok "src/Kconfig: source avr → gd32"
+            KCONFIG_CHANGED=1
+        fi
+
+        # 2. Add config MACH_GD32 to the architecture choice block if missing
+        if [ -d "src/gd32" ] && ! grep -q 'config MACH_GD32' src/Kconfig; then
+            python3 - << 'PYEOF'
+with open('src/Kconfig', 'r') as f:
+    content = f.read()
+# Insert MACH_GD32 entry right after MACH_AVR in the choice block
+content = content.replace(
+    '    config MACH_AVR\n        bool "Atmega AVR"',
+    '    config MACH_AVR\n        bool "Atmega AVR"\n    config MACH_GD32\n        bool "GD32"'
+)
+with open('src/Kconfig', 'w') as f:
+    f.write(content)
+PYEOF
+            ok "src/Kconfig: config MACH_GD32 added to choice block"
+            KCONFIG_CHANGED=1
+        fi
+
+        [ "$KCONFIG_CHANGED" -eq 0 ] && ok "src/Kconfig: already correct"
+
+        # 3. Always apply skip-worktree to prevent dirty repo warnings
+        git update-index --skip-worktree src/Kconfig
+        ok "src/Kconfig ignored by git (--skip-worktree)"
+    fi
+
+    # Fix snapmakerj1.config if corrupted (must target GD32, not AVR)
+    if [ -f "snapmakerj1.config" ] && ! grep -q 'CONFIG_MACH_GD32=y' snapmakerj1.config; then
+        if [ -f "snapmakerj1.config.old" ] && grep -q 'CONFIG_MACH_GD32=y' snapmakerj1.config.old; then
+            cp snapmakerj1.config.old snapmakerj1.config
+            ok "snapmakerj1.config restored from .old (was targeting wrong MCU)"
+        else
+            warn "snapmakerj1.config does not target GD32 — check it manually"
+        fi
     else
-        ok "src/Kconfig already clean"
+        ok "snapmakerj1.config targets GD32"
     fi
 
     # skip-worktree for deleted src/avr/* files (intentionally removed by snapmakerj1 fork)
@@ -66,8 +109,11 @@ else
         cat >> "$EXCLUDE_FILE" << 'EOF'
 # J1s fork excludes — added by setup_mcu_update.sh
 .config.main
+.config.old
 .config.rp2040
+.config.rp2040.old
 snapmakerj1.config
+snapmakerj1.config.old
 config/printer-snapmaker-j1-printer.cfg
 config/snapmakerj1_defconfig
 lib/gd32f3/
