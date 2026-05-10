@@ -155,7 +155,29 @@ The standby head is kept at `print_temp − 70 °C` during the print. When the A
 
 ---
 
-## 11. Connecting to the printer
+## 11. Acceleration settings
+
+> **Important**: OrcaSlicer applies the accelerations defined in the **print profile** (Quality > Acceleration) with absolute priority. Values set at the **printer profile** level (machine limits / motion capability) are overridden. Always configure accelerations in the print profile.
+
+### Recommended values for the J1 / J1s
+
+| Parameter | Recommended value |
+|---|---|
+| Normal printing | 3000 mm/s² |
+| Outer wall | 2500 mm/s² |
+| Inner wall | 3000 mm/s² |
+| Bridge | 2000 mm/s² |
+| Sparse infill | 2500 mm/s² |
+| Internal solid infill | 2500 mm/s² |
+| First layer | 500 mm/s² |
+| Top surface | 500 mm/s² |
+| Travel | 3500 mm/s² |
+| Enable accel_to_decel | Yes |
+| accel_to_decel | 50 % |
+
+---
+
+## 12. Connecting to the printer
 
 In **OrcaSlicer > Preferences > Printer**:
 

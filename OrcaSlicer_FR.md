@@ -154,7 +154,25 @@ La tête de secours est maintenue à `temp_impression − 70 °C` pendant l'impr
 - **Safe distance** : les deux têtes doivent conserver un écart minimum de 21 mm.
 
 ---
+## 11. Paramètres d'accélération
 
+> **Important** : OrcaSlicer applique les accélérations définies dans le **profil d'impression** (Qualité > Accélération) en priorité absolue. Les valeurs renseignées au niveau du **paramètre de l'imprimante** (capacité de mouvement) sont écrasées. Toujours configurer les accélérations dans le profil d'impression.
+
+### Valeurs recommandées pour la J1 / J1s
+
+| Paramètre | Valeur recommandée |
+|---|---|
+| Impression normale | 3000 mm/s² |
+| Paroi extérieure | 2500 mm/s² |
+| Paroi intérieure | 3000 mm/s² |
+| Pont (bridge) | 2000 mm/s² |
+| Remplissage sparse | 2500 mm/s² |
+| Remplissage solide interne | 2500 mm/s² |
+| Première couche | 500 mm/s² |
+| Surface supérieure | 500 mm/s² |
+| Déplacement (travel) | 3500 mm/s² |
+| Activer accel_to_decel | Oui |
+| accel_to_decel | 50 % |
 ## 11. Connexion à l'imprimante
 
 Dans **OrcaSlicer > Préférences > Imprimante** :
