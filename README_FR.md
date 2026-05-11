@@ -73,7 +73,7 @@ Les includes dans `printer.cfg` :
 1. **Cloner dans `~/printer_data/config/`** :
    ```bash
    cd ~/printer_data/config
-   git clone https://github.com/<votre-user>/J1s-Klipper-Macros.git .
+   git clone https://github.com/FranckFG62/J1s-Klipper-Macros.git .
    ```
    ⚠️ Faites une sauvegarde de votre configuration existante avant toute manipulation.
 
