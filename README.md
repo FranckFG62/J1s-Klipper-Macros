@@ -42,7 +42,7 @@ printer_data/
 │   └── MCU_temp_fan.cfg     # Enclosure fan on PC6 — auto PID control (always active)
 │
 ├── macros/
-│   ├── macros.cfg           # Logging + homing flag + G1 override + M600
+│   ├── macros.cfg           # Logging + homing flag + G1 override + BLINK_LED + M600
 │   ├── idex.cfg             # COPY / MIRROR / PRIMARY / BACKUP + T0/T1 + M104/M109/M106/M107
 │   ├── calibration.cfg      # Cross-head Z calibration + nozzle cleaning
 │   ├── filament.cfg         # LOAD / UNLOAD T0 / T1
@@ -52,20 +52,23 @@ printer_data/
 │   └── test_speed.cfg       # IDEX-safe speed/accel test
 │
 └── Extras/                  # Optional configs — activate via printer.cfg includes
-    ├── MMB_cubic.cfg        # BTT MMB Cubic V1.0 — secondary MCU (RP2040, 3× fans)
-    ├── MMB_aux_fan.cfg      # Auxiliary fan on MMB Cubic FAN0 (gpio8)
-    └── adxl345_fysetc_v1.cfg  # FYSETC v1 ADXL345 input shaper (USB RP2040)
+    ├── MMB_cubic.cfg           # BTT MMB Cubic V1.0 — secondary MCU (RP2040, 3× fans)
+    ├── MMB_aux_fan.cfg         # Auxiliary fan on MMB Cubic FAN0 (gpio8)
+    ├── adxl345_fysetc_v1.cfg   # FYSETC v1 ADXL345 input shaper (USB RP2040) — included by shaketune.cfg
+    ├── shaketune.cfg           # Klippain-ShakeTune + ADXL345 + SHAKETUNE_T0 / SHAKETUNE_T1 macros
+    └── shaketune_toggle.cfg    # SHAKETUNE_ENABLE / SHAKETUNE_DISABLE macros (always loaded)
 ```
 
 Includes in `printer.cfg`:
 
 ```ini
 [include mainsail.cfg]
-[include hardware/*.cfg]        # includes MCU_temp_fan.cfg automatically
+[include hardware/*.cfg]             # includes MCU_temp_fan.cfg automatically
 [include macros/*.cfg]
-#[include Extras/MMB_cubic.cfg]     # uncomment to enable MMB Cubic secondary MCU
-#[include Extras/MMB_aux_fan.cfg]   # uncomment to enable auxiliary fan (requires MMB_cubic.cfg)
-#[include Extras/adxl345_fysetc_v1.cfg]  # uncomment to enable ADXL input shaper
+[include Extras/shaketune_toggle.cfg]    # ShakeTune toggle macros (always active)
+#[include Extras/MMB_cubic.cfg]          # uncomment to enable MMB Cubic secondary MCU
+#[include Extras/MMB_aux_fan.cfg]        # uncomment to enable auxiliary fan (requires MMB_cubic.cfg)
+#[include Extras/shaketune.cfg]          # uncomment when ADXL345 is connected
 ```
 
 ## 🚀 Installation
@@ -94,7 +97,7 @@ Includes in `printer.cfg`:
 | Macro | Description |
 |---|---|
 | `START_PRINT` | Heat, home, purge + nozzle wipe, auto IDEX mode from plate name |
-| `END_PRINT` | Retract, Z hop, park T0 + T1 |
+| `END_PRINT` | Anti-ooze (cool to 160°C + 10mm retract), Z hop, park T0 + T1 |
 | `PAUSE` / `RESUME` | Full save/restore (position, IDEX mode, temps, fans) |
 | `IDEX_COPY [SPACING=165]` | Enable COPY mode |
 | `IDEX_MIRROR` | Enable MIRROR mode |
@@ -106,6 +109,9 @@ Includes in `printer.cfg`:
 | `NOZZLE_CLEAN` / `NOZZLE_CLEAN_END` | Manual nozzle cleaning |
 | `CALIBRATE_Z_START/SAVE/END` | Cross-head Z calibration procedure |
 | `TEST_SPEED CARRIAGE=0\|1` | Per-carriage safe speed test |
+| `BLINK_LED [COUNT=3] [ON_MS=200] [OFF_MS=200]` | Blink enclosure LED — end-of-action signal |
+| `SHAKETUNE_ENABLE` / `SHAKETUNE_DISABLE` | Enable/disable ShakeTune + ADXL345 (edits printer.cfg + restarts) |
+| `SHAKETUNE_T0` / `SHAKETUNE_T1` | Input shaper calibration on T0 or T1 (parks inactive head, runs AXES_SHAPER_CALIBRATION) |
 | `FILAMENT_STATUS` | Display ADC sensor state |
 | `M412 S0\|1` | Enable/disable filament sensor |
 | `M600` | Filament change — alias for `PAUSE` (Z-hop, state save, park) |

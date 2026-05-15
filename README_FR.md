@@ -1,6 +1,6 @@
 # J1s-Klipper-Macros
 
-Configuration Klipper complète pour la **Snapmaker J1 / J1s** (imprimante 3D IDEX), incluant macros IDEX (PRIMARY / COPY / MIRROR / BACKUP), calibration Z inter-têtes, gestion filament via capteurs ADC, purge adaptative avec essuyage buse et surcharges PAUSE / RESUME / START / END.
+Configuration Klipper complète pour la **Snapmaker J1 / J1s** (imprimante 3D IDEX), incluant macros IDEX (PRIMARY / COPY / MIRROR / BACKUP), calibration Z, gestion filament via capteurs ADC.
 
 > ⚠️ **Prérequis** — Cette configuration suppose que Klipper est **déjà installé** sur votre Snapmaker J1/J1s. Suivez impérativement le guide d'installation d'**Evil Azrael** avant d'utiliser ce repo :
 > 👉 **https://wiki.evilazrael.de/en/snapmaker-j1-klipper-installation**
@@ -10,19 +10,47 @@ Configuration Klipper complète pour la **Snapmaker J1 / J1s** (imprimante 3D ID
 > 🇬🇧 An English version of this documentation is available in [README.md](README.md).
 
 ---
+## 🚀 Installation
+
+1. **Cloner dans `~/printer_data/config/`** :
+   ```bash
+   cd ~/printer_data/config
+   git clone https://github.com/FranckFG62/J1s-Klipper-Macros.git .
+   ```
+   ⚠️ Faites une sauvegarde de votre configuration existante avant toute manipulation.
+
+2. **Adapter les offsets dans `printer.cfg`** :
+   - `_J1_CONFIG.right_nozzle_adjust_x` / `_y` — offset mécanique XY entre T0 et T1.
+
+     L'étalonnage automatique du décalage XY n'est pas implémenté,cette étape est donc manuelle.
+
+     Utilisez le modèle du package téléchargé. Il s'agit d'une version déjà intégrée de l'étalonnage XY par «LMaker» disponible à l'adresse https://www.printables.com/model/129617-offset-xy-dual-extruder-idex-calibration. Vous y trouverez également des explications sur l'interprétation des résultats.
+
+      En résumé:
+
+      Imprimez la partie inférieure du modèle avec l'extrudeur gauche et la partie supérieure avec l'extrudeur droit.
+      Sur le modèle imprimé, vous verrez deux axes avec des barres.
+
+      Sur chaque axe, repérez la barre parfaitement alignée, du côté positif ou négatif. Multipliez l'indice (à partir de 0) de la barre correspondante par 0,1 pour obtenir le décalage. Par exemple, si la troisième barre négative correspond, le calcul est: (3 - 1) * -0,1 = -0,2.
+
+      Modifiez le fichier printer.cfg. Vous pouvez le faire via l'interface web. Trouvez les lignes `variable_right_nozzle_adjust_x: 0` et `variable_right_nozzle_adjust_y: 0`.
+      Soustrayez le décalage calculé de la valeur actuelle.
+
+      Enregistrez, redémarrez Klipper, imprimez à nouveau. les premières barres de chaque axe devraient être alignées.
+
+
+3. **Calibration initiale** — dans cet ordre :
+   - `PID_BED`, `PID_EXTRUDER`, `PID_EXTRUDER1`
+   - `CALIBRATE_Z_START` → `CALIBRATE_Z_SAVE` → `CALIBRATE_Z_END`
+    - `Z_OFFSET.t0` / `t1` — valeurs par défaut 8mm au premier boot, remplacées ensuite par `variables.cfg`.
 
 ## ✨ Fonctionnalités
 
 - **IDEX complet** — modes `PRIMARY`, `COPY`, `MIRROR` avec découplage propre des chariots et gestion des offsets T0/T1.
 - **Mode IDEX Backup** — bascule automatique sur la tête de secours en cas de fin/blocage de filament ; la tête backup est maintenue en température veille pour limiter le suintement. Activé par le nom du plateau slicer.
-- **Calibration Z inter-têtes** — procédure guidée en 3 étapes (`CALIBRATE_Z_START` / `SAVE` / `END`) avec persistance via `save_variables`.
 - **Capteur filament ADC** — émulation de la logique firmware Snapmaker stock via les encodeurs optiques PA4 / PA0, avec pause automatique en cas de blocage ou bascule automatique sur la tête backup en mode BACKUP.
 - **Capteur ADC buse PT100** — table de conversion générée pour le pont diviseur Snapmaker (`Snapmaker J1 Nozzle`).
-- **Purge adaptative avec essuyage buse** — flush volumétrique haute température puis ligne de purge (mono-tête ou MIRROR synchronisé), suivi d'un essuyage sur le pad silicone avant le parking.
-- **PAUSE / RESUME robustes** — sauvegarde complète de l'état (position, offsets gcode, mode IDEX, températures, fans) et restauration fidèle incluant le Z offset T0/T1. `M600` (changement de filament) est également supporté comme alias.
 - **Chargement / déchargement filament** — macros `LOAD_T0`, `LOAD_T1`, `UNLOAD_T0`, `UNLOAD_T1` calibrées pour le direct drive J1s.
-- **Contrôle fan MCU** — la broche PC6 pilote le fan du caisson automatiquement via `temperature_fan` (PID, cible 45 °C). En option : connecter une carte BTT MMB Cubic comme MCU secondaire pour ajouter des fans auxiliaires à contrôle indépendant.
-- **Surcharge `G1`** — blocage des mouvements Z avant homing pour éviter les collisions dues aux G1 Z injectés par le slicer.
 
 ## 📁 Arborescence
 
@@ -42,7 +70,7 @@ printer_data/
 │   └── MCU_temp_fan.cfg     # Fan caisson sur PC6 — contrôle PID automatique (toujours actif)
 │
 ├── macros/
-│   ├── macros.cfg           # Logging + flag homing + surcharge G1 + M600
+│   ├── macros.cfg           # Logging + flag homing + surcharge G1 + BLINK_LED + M600
 │   ├── idex.cfg             # COPY / MIRROR / PRIMARY / BACKUP + T0/T1 + M104/M109/M106/M107
 │   ├── calibration.cfg      # Calibration Z inter-têtes + nettoyage buses
 │   ├── filament.cfg         # LOAD / UNLOAD T0 / T1
@@ -52,50 +80,34 @@ printer_data/
 │   └── test_speed.cfg       # Test vitesse / accélération sécurisé IDEX
 │
 └── Extras/                  # Configs optionnelles — activées via les includes de printer.cfg
-    ├── MMB_cubic.cfg        # BTT MMB Cubic V1.0 — MCU secondaire (RP2040, 3× fans)
-    ├── MMB_aux_fan.cfg      # Fan auxiliaire sur MMB Cubic FAN0 (gpio8)
-    └── adxl345_fysetc_v1.cfg  # FYSETC v1 ADXL345 input shaper (RP2040 USB)
+    ├── MMB_cubic.cfg           # BTT MMB Cubic V1.0 — MCU secondaire (RP2040, 3× fans)
+    ├── MMB_aux_fan.cfg         # Fan auxiliaire sur MMB Cubic FAN0 (gpio8)
+    ├── adxl345_fysetc_v1.cfg   # FYSETC v1 ADXL345 input shaper (RP2040 USB) — inclus par shaketune.cfg
+    ├── shaketune.cfg           # Klippain-ShakeTune + ADXL345 + macros SHAKETUNE_T0 / SHAKETUNE_T1
+    └── shaketune_toggle.cfg    # Macros SHAKETUNE_ENABLE / SHAKETUNE_DISABLE (toujours chargé)
 ```
 
 Les includes dans `printer.cfg` :
 
 ```ini
 [include mainsail.cfg]
-[include hardware/*.cfg]        # inclut MCU_temp_fan.cfg automatiquement
+[include hardware/*.cfg]           # inclut MCU_temp_fan.cfg automatiquement
 [include macros/*.cfg]
-#[include Extras/MMB_cubic.cfg]     # décommenter pour activer le MCU secondaire MMB Cubic
-#[include Extras/MMB_aux_fan.cfg]   # décommenter pour le fan auxiliaire (nécessite MMB_cubic.cfg)
-#[include Extras/adxl345_fysetc_v1.cfg]  # décommenter pour l'input shaper ADXL
+[include Extras/shaketune_toggle.cfg]   # macros toggle ShakeTune (toujours actif)
+#[include Extras/MMB_cubic.cfg]         # décommenter pour activer le MCU secondaire MMB Cubic
+#[include Extras/MMB_aux_fan.cfg]       # décommenter pour le fan auxiliaire (nécessite MMB_cubic.cfg)
+#[include Extras/shaketune.cfg]         # décommenter quand l'ADXL345 est branché
 ```
 
-## 🚀 Installation
 
-1. **Cloner dans `~/printer_data/config/`** :
-   ```bash
-   cd ~/printer_data/config
-   git clone https://github.com/FranckFG62/J1s-Klipper-Macros.git .
-   ```
-   ⚠️ Faites une sauvegarde de votre configuration existante avant toute manipulation.
-
-2. **Adapter `hardware/hardware.cfg`** — vérifier le port MCU (`serial:`), les pins et les courants TMC si votre carte diffère.
-
-3. **Adapter les offsets dans `printer.cfg`** :
-   - `_J1_CONFIG.right_nozzle_adjust_x` / `_y` — offset mécanique XY entre T0 et T1.
-   - `Z_OFFSET.t0` / `t1` — valeurs par défaut au premier boot, remplacées ensuite par `variables.cfg`.
-
-4. **Redémarrer Klipper** puis lancer `G28` pour vérifier le homing.
-
-5. **Calibration initiale** — dans cet ordre :
-   - `PID_BED`, `PID_EXTRUDER`, `PID_EXTRUDER1`
-   - `CALIBRATE_Z_START` → `CALIBRATE_Z_SAVE` → `CALIBRATE_Z_END`
 
 ## 🎛️ Macros principales
 
 | Macro | Description |
 |---|---|
 | `START_PRINT` | Chauffe, homing, purge + essuyage buse, sélection auto du mode IDEX selon le nom du plateau |
-| `END_PRINT` | Rétract, dégagement Z, parking T0 + T1 |
-| `PAUSE` / `RESUME` | Sauvegarde/restauration complète (position, mode IDEX, temps, fans) |
+| `END_PRINT` | Anti-suintement (refroidissement 160°C + rétractation 10mm), dégagement Z, parking T0 + T1 |
+| `PAUSE` / `RESUME` | Sauvegarde/restauration complète (position, mode IDEX, températures, fans) |
 | `IDEX_COPY [SPACING=165]` | Active le mode COPY |
 | `IDEX_MIRROR` | Active le mode MIRROR |
 | `IDEX_PRIMARY` | Retour impression normale T0 |
@@ -106,9 +118,10 @@ Les includes dans `printer.cfg` :
 | `NOZZLE_CLEAN` / `NOZZLE_CLEAN_END` | Nettoyage manuel des buses |
 | `CALIBRATE_Z_START/SAVE/END` | Procédure calibration Z inter-têtes |
 | `TEST_SPEED CARRIAGE=0\|1` | Test vitesse sécurisé par chariot |
-| `FILAMENT_STATUS` | Affiche l'état des capteurs ADC |
-| `M412 S0\|1` | Active/désactive le capteur filament |
-| `M600` | Changement de filament — alias de `PAUSE` (Z-hop, sauvegarde état, parking) |
+| `BLINK_LED [COUNT=3] [ON_MS=200] [OFF_MS=200]` | Clignotement LED caisson — signal de fin d'action |
+| `SHAKETUNE_ENABLE` / `SHAKETUNE_DISABLE` | Active/désactive ShakeTune + ADXL345 (modifie printer.cfg + redémarre) |
+| `SHAKETUNE_T0` / `SHAKETUNE_T1` | Calibration input shaper sur T0 ou T1 (gare la tête inactive, lance AXES_SHAPER_CALIBRATION) |
+
 
 ## 🔀 Sélection du mode IDEX par nom de plateau
 
@@ -123,13 +136,6 @@ Les includes dans `printer.cfg` :
 | `backup_t1` | BACKUP — T1 primaire, T0 en veille ; bascule auto sur T0 en cas de fin de filament T1 |
 
 En mode BACKUP, la tête en veille est maintenue à `temp_impression − 70 °C` pour limiter le suintement. En cas de fin de filament, elle remonte automatiquement à la température d'impression avant de reprendre — aucune intervention utilisateur nécessaire. Si la tête backup manque aussi de filament, l'impression se met en pause normalement.
-
-## ⚙️ Paramètres notables
-
-- **`_J1_CONFIG`** (dans `printer.cfg`) : offsets mécaniques T1 (`right_nozzle_adjust_x/y`) et flag `wipe_on_activate`.
-- **`Z_OFFSET.t0` / `.t1`** : rechargés automatiquement depuis `variables.cfg` 1 s après le boot via `[delayed_gcode _LOAD_Z_OFFSETS]`.
-- **`_FILAMENT_VARS`** : seuil ADC (`threshold=15`), erreurs max consécutives (`max_errors=3`), distance de check (`check_distance=2.0` mm).
-- **`_J1_RUNTIME_STATE`** : températures et fans mémorisés pour les switchs T0/T1 transparents.
 
 ## 🖨️ Configuration OrcaSlicer
 
@@ -161,13 +167,6 @@ Voir [Armbian_Optimisations_FR.md](Armbian_Optimisations_FR.md) pour les réglag
 
 Le fichier `backup-mainsail.json` contient une sauvegarde complète de l'interface Mainsail :
 
-- Langue et nom de l'imprimante (`Snapmaker J1`, `fr`)
-- Thème et couleurs (`mainsail`, accent `#D41216`)
-- **Groupes de macros** : Calibration, IDEX, Print, Filament, ADC — avec visibilité par état (veille / pause / impression)
-- **Présets de température** : PLA Extrudeur G, PLA Extrudeur D, PLA IDEX, Préchauffage
-- Layout du dashboard (3 colonnes écran large)
-- Paramètres de la console et du visualiseur GCode
-
 ### Procédure de restauration
 
 1. Téléchargez le fichier `backup-mainsail.json` depuis ce dépôt.
@@ -193,4 +192,4 @@ GPLv3 — voir `LICENSE`. Certains fichiers (notamment `mainsail.cfg`) sont redi
 - **[Evil Azrael](https://wiki.evilazrael.de/en/snapmaker-j1-klipper-installation)** — Guide d'installation Klipper pour la J1/J1s et travail de reverse-engineering. Ce projet n'existerait pas sans lui.
 - [Klipper](https://github.com/Klipper3d/klipper) — Kevin O'Connor & contributeurs
 - [Mainsail](https://github.com/mainsail-crew/mainsail) — mainsail-crew
-- La communauté Snapmaker pour le reverse-engineering du hardware J1/J1s
+- La communauté Snapmaker J1/J1s
