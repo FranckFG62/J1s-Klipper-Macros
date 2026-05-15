@@ -1,6 +1,6 @@
 # J1s-Klipper-Macros
 
-Complete Klipper configuration for the **Snapmaker J1 / J1s** (IDEX 3D printer), including IDEX macros (PRIMARY / COPY / MIRROR / BACKUP), cross-head Z calibration, ADC-based filament sensing, adaptive purge lines with nozzle wipe, and PAUSE / RESUME / START / END overrides.
+Complete Klipper configuration for the **Snapmaker J1 / J1s** (IDEX 3D printer), including IDEX macros (PRIMARY / COPY / MIRROR / BACKUP), Z calibration, ADC-based filament sensing.
 
 > ⚠️ **Prerequisite** — This configuration assumes Klipper is **already installed** on your Snapmaker J1/J1s. Please follow **Evil Azrael**'s installation guide before using this repo:
 > 👉 **https://wiki.evilazrael.de/en/snapmaker-j1-klipper-installation**
@@ -10,19 +10,46 @@ Complete Klipper configuration for the **Snapmaker J1 / J1s** (IDEX 3D printer),
 > 🇫🇷 Une version française de cette documentation est disponible dans [README_FR.md](README_FR.md).
 
 ---
+## 🚀 Installation
+
+1. **Clone into `~/printer_data/config/`**:
+   ```bash
+   cd ~/printer_data/config
+   git clone https://github.com/FranckFG62/J1s-Klipper-Macros.git .
+   ```
+   ⚠️ Back up your existing config before doing this.
+
+2. **Adapt the offsets in `printer.cfg`**:
+   - `_J1_CONFIG.right_nozzle_adjust_x` / `_y` — mechanical XY offset between T0 and T1.
+
+     Automatic XY offset calibration is not implemented — this step is manual.
+
+     Use the model from the downloaded package. It is an integrated version of the XY calibration by «LMaker» available at https://www.printables.com/model/129617-offset-xy-dual-extruder-idex-calibration. You will also find instructions on how to interpret the results.
+
+     In short:
+
+     Print the bottom part of the model with the left extruder and the top part with the right extruder.
+     On the printed model, you will see two axes with bars.
+
+     On each axis, find the perfectly aligned bar, on the positive or negative side. Multiply the index (starting from 0) of the corresponding bar by 0.1 to get the offset. For example, if the third negative bar matches, the calculation is: (3 - 1) * -0.1 = -0.2.
+
+     Edit `printer.cfg`. Find the lines `variable_right_nozzle_adjust_x: 0` and `variable_right_nozzle_adjust_y: 0`.
+     Subtract the calculated offset from the current value.
+
+     Save, restart Klipper, print again — the first bars on each axis should now be aligned.
+
+3. **Initial calibration** — in this order:
+   - `PID_BED`, `PID_EXTRUDER`, `PID_EXTRUDER1`
+   - `CALIBRATE_Z_START` → `CALIBRATE_Z_SAVE` → `CALIBRATE_Z_END`
+   - `Z_OFFSET.t0` / `t1` — default 8mm on first boot, then overridden by `variables.cfg`.
 
 ## ✨ Features
 
 - **Full IDEX support** — `PRIMARY`, `COPY`, `MIRROR` modes with clean carriage decoupling and T0/T1 offset management.
 - **IDEX Backup mode** — automatic switch to the backup extruder on filament runout; backup head kept at standby temperature to limit ooze while waiting. Activated by plate name.
-- **Cross-head Z calibration** — 3-step guided procedure (`CALIBRATE_Z_START` / `SAVE` / `END`) with persistence via `save_variables`.
 - **ADC filament sensor** — emulates the stock Snapmaker firmware logic using the PA4 / PA0 optical encoders, auto-pause on jam or auto-switch to backup extruder in BACKUP mode.
 - **PT100 nozzle ADC sensor** — conversion table generated for the Snapmaker voltage divider (`Snapmaker J1 Nozzle`).
-- **Adaptive purge with nozzle wipe** — volumetric flush then purge line (single-head or synchronized MIRROR), followed by a wipe on the silicone pad before parking.
-- **Robust PAUSE / RESUME** — full state save (position, gcode offsets, IDEX mode, temperatures, fans) with faithful restore including T0/T1 Z offset. `M600` (filament change) is also supported as an alias.
 - **Filament load/unload** — `LOAD_T0`, `LOAD_T1`, `UNLOAD_T0`, `UNLOAD_T1` macros tuned for the J1s direct drive.
-- **MCU fan control** — pin PC6 drives the enclosure fan automatically via `temperature_fan` (PID, target 45 °C). Optional: connect a BTT MMB Cubic as a secondary MCU to add independently-controlled auxiliary fans.
-- **`G1` override** — blocks Z moves before homing to prevent crashes from slicer-injected G1 Z commands.
 
 ## 📁 File layout
 
@@ -71,26 +98,7 @@ Includes in `printer.cfg`:
 #[include Extras/shaketune.cfg]          # uncomment when ADXL345 is connected
 ```
 
-## 🚀 Installation
 
-1. **Clone into `~/printer_data/config/`**:
-   ```bash
-   cd ~/printer_data/config
-   git clone https://github.com/FranckFG62/J1s-Klipper-Macros.git .
-   ```
-   ⚠️ Back up your existing config before doing this.
-
-2. **Adapt `hardware/hardware.cfg`** — verify MCU port (`serial:`), pins and TMC currents if your board differs.
-
-3. **Adapt the offsets in `printer.cfg`**:
-   - `_J1_CONFIG.right_nozzle_adjust_x` / `_y` — mechanical XY offset between T0 and T1.
-   - `Z_OFFSET.t0` / `t1` — defaults at first boot, then overridden by `variables.cfg`.
-
-4. **Restart Klipper**, then run `G28` to verify homing.
-
-5. **Initial calibration** — in this order:
-   - `PID_BED`, `PID_EXTRUDER`, `PID_EXTRUDER1`
-   - `CALIBRATE_Z_START` → `CALIBRATE_Z_SAVE` → `CALIBRATE_Z_END`
 
 ## 🎛️ Main macros
 
@@ -112,30 +120,21 @@ Includes in `printer.cfg`:
 | `BLINK_LED [COUNT=3] [ON_MS=200] [OFF_MS=200]` | Blink enclosure LED — end-of-action signal |
 | `SHAKETUNE_ENABLE` / `SHAKETUNE_DISABLE` | Enable/disable ShakeTune + ADXL345 (edits printer.cfg + restarts) |
 | `SHAKETUNE_T0` / `SHAKETUNE_T1` | Input shaper calibration on T0 or T1 (parks inactive head, runs AXES_SHAPER_CALIBRATION) |
-| `FILAMENT_STATUS` | Display ADC sensor state |
-| `M412 S0\|1` | Enable/disable filament sensor |
-| `M600` | Filament change — alias for `PAUSE` (Z-hop, state save, park) |
+
 
 ## 🔀 IDEX mode selection from plate name
 
-`START_PRINT` detects the print mode from the `PLATE=` slicer parameter (plate/profile name). Name your slicer plate to contain one of the following keywords:
+`START_PRINT` detects the print mode from the `PLATE=` slicer parameter (plate/profile name). The plate name only needs to **contain** the corresponding keyword (case-insensitive):
 
-| Keyword in plate name | Mode |
+| Keyword in plate name | IDEX mode |
 |---|---|
 | *(none)* | PRIMARY — T0 if `T0_TEMP > 0`, T1 if only `T1_TEMP > 0` |
 | `copy` | COPY — both heads print the same part side by side |
 | `mirror` | MIRROR — both heads print symmetrically about the bed centre |
-| `backup` | BACKUP — T0 primary, T1 on standby; auto-switch on T0 runout |
-| `backup_t1` | BACKUP — T1 primary, T0 on standby; auto-switch on T1 runout |
+| `backup` | BACKUP — T0 primary, T1 on standby; auto-switch to T1 on T0 runout |
+| `backup_t1` | BACKUP — T1 primary, T0 on standby; auto-switch to T0 on T1 runout |
 
 In BACKUP mode, the standby head is kept at `print_temp − 70 °C` to limit ooze while waiting. On filament runout, the backup head heats back up to print temperature before continuing — no user intervention required. If the backup head also runs out, the print pauses normally.
-
-## ⚙️ Notable settings
-
-- **`_J1_CONFIG`** (in `printer.cfg`): T1 mechanical offsets (`right_nozzle_adjust_x/y`) and `wipe_on_activate` flag.
-- **`Z_OFFSET.t0` / `.t1`**: auto-reloaded from `variables.cfg` 1 s after boot via `[delayed_gcode _LOAD_Z_OFFSETS]`.
-- **`_FILAMENT_VARS`**: ADC threshold (`threshold=15`), max consecutive errors (`max_errors=3`), check distance (`check_distance=2.0` mm).
-- **`_J1_RUNTIME_STATE`**: temperatures and fans memorized for transparent T0/T1 swaps.
 
 ## 🖨️ OrcaSlicer configuration
 
@@ -165,14 +164,7 @@ See [Armbian_Optimisations_EN.md](Armbian_Optimisations_EN.md) for the recommend
 
 ## 🗄️ Mainsail UI backup and restore
 
-The `backup-mainsail.json` file is a complete backup of the Mainsail interface:
-
-- Language and printer name (`Snapmaker J1`, `fr`)
-- Theme and colors (`mainsail`, accent `#D41216`)
-- **Macro groups**: Calibration, IDEX, Print, Filament, ADC — with per-state visibility (standby / pause / printing)
-- **Temperature presets**: PLA Left Extruder, PLA Right Extruder, PLA IDEX, Preheat
-- Dashboard layout (3-column widescreen)
-- Console and GCode viewer settings
+The `backup-mainsail.json` file contains a complete backup of the Mainsail interface.
 
 ### Restore procedure
 
@@ -192,10 +184,11 @@ The `backup-mainsail.json` file is a complete backup of the Mainsail interface:
 
 ## 📜 License
 
-GPLv3 — see `LICENSE`. Some files (notably `mainsail.cfg`) are redistributed under their original license from the [mainsail-crew](https://github.com/mainsail-crew).
+GPLv3 — see `LICENSE`. Some files (notably `mainsail.cfg`) are redistributed under their original license from [mainsail-crew](https://github.com/mainsail-crew).
 
 ## 🙏 Credits
 
 - **[Evil Azrael](https://wiki.evilazrael.de/en/snapmaker-j1-klipper-installation)** — Snapmaker J1/J1s Klipper installation guide and reverse-engineering work. This project would not exist without him.
 - [Klipper](https://github.com/Klipper3d/klipper) — Kevin O'Connor & contributors
 - [Mainsail](https://github.com/mainsail-crew/mainsail) — mainsail-crew
+- The Snapmaker J1/J1s community
