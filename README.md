@@ -81,9 +81,10 @@ printer_data/
 └── Extras/                  # Optional configs — activate via printer.cfg includes
     ├── MMB_cubic.cfg           # BTT MMB Cubic V1.0 — secondary MCU (RP2040, 3× fans)
     ├── MMB_aux_fan.cfg         # Auxiliary fan on MMB Cubic FAN0 (gpio8)
-    ├── adxl345_fysetc_v1.cfg   # FYSETC v1 ADXL345 input shaper (USB RP2040) — included by shaketune.cfg
-    ├── shaketune.cfg           # Klippain-ShakeTune + ADXL345 + SHAKETUNE_T0 / SHAKETUNE_T1 macros
-    └── shaketune_toggle.cfg    # SHAKETUNE_ENABLE / SHAKETUNE_DISABLE macros (always loaded)
+    ├── adxl345_fysetc_v1.cfg   # FYSETC v1 ADXL345 hardware (USB RP2040) — included by ADXL.cfg
+    ├── ADXL.cfg                # Input shaper macros: SHAPER_CALIBRATE_T0 / T1, auto-save to variables.cfg
+    ├── ADXL_toggle.cfg         # ADXL_ENABLE / ADXL_DISABLE macros + init_shaper at boot (always loaded)
+    └── INPUT_SHAPER.md         # ← Installation guide and calibration workflow
 ```
 
 Includes in `printer.cfg`:
@@ -92,10 +93,10 @@ Includes in `printer.cfg`:
 [include mainsail.cfg]
 [include hardware/*.cfg]             # includes MCU_temp_fan.cfg automatically
 [include macros/*.cfg]
-[include Extras/shaketune_toggle.cfg]    # ShakeTune toggle macros (always active)
-#[include Extras/MMB_cubic.cfg]          # uncomment to enable MMB Cubic secondary MCU
-#[include Extras/MMB_aux_fan.cfg]        # uncomment to enable auxiliary fan (requires MMB_cubic.cfg)
-#[include Extras/shaketune.cfg]          # uncomment when ADXL345 is connected
+[include Extras/ADXL_toggle.cfg]     # input shaper boot init + toggle macros (always active)
+#[include Extras/MMB_cubic.cfg]      # uncomment to enable MMB Cubic secondary MCU
+#[include Extras/MMB_aux_fan.cfg]    # uncomment to enable auxiliary fan (requires MMB_cubic.cfg)
+[include Extras/ADXL.cfg]           # toggled by ADXL_ENABLE / ADXL_DISABLE — comment out when ADXL not connected
 ```
 
 
@@ -118,8 +119,10 @@ Includes in `printer.cfg`:
 | `CALIBRATE_Z_START/SAVE/END` | Cross-head Z calibration procedure |
 | `TEST_SPEED CARRIAGE=0\|1` | Per-carriage safe speed test |
 | `BLINK_LED [COUNT=3] [ON_MS=200] [OFF_MS=200]` | Blink enclosure LED — end-of-action signal |
-| `SHAKETUNE_ENABLE` / `SHAKETUNE_DISABLE` | Enable/disable ShakeTune + ADXL345 (edits printer.cfg + restarts) |
-| `SHAKETUNE_T0` / `SHAKETUNE_T1` | Input shaper calibration on T0 or T1 (parks inactive head, runs AXES_SHAPER_CALIBRATION) |
+| `ADXL_ENABLE` / `ADXL_DISABLE` | Enable/disable ADXL345 (edits printer.cfg + restarts Klipper) |
+| `SHAPER_CALIBRATE_T0` | Input shaper calibration on T0 — measures X+Y, saves automatically to `variables.cfg` |
+| `SHAPER_CALIBRATE_T1` | Input shaper calibration on T1 — measures X only (Y shared with T0), saves automatically |
+| `SAVE_SHAPER_PARAMS CARRIAGE=0\|1 ...` | Manually persist shaper values — see [INPUT_SHAPER.md](Extras/INPUT_SHAPER.md) |
 
 
 ## 🔀 IDEX mode selection from plate name
