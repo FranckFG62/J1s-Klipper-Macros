@@ -85,7 +85,8 @@ printer_data/
     ├── adxl345_fysetc_v1.cfg   # FYSETC v1 ADXL345 hardware (RP2040 USB) — inclus par ADXL.cfg
     ├── ADXL.cfg                # Macros input shaper : SHAPER_CALIBRATE_T0 / T1, sauvegarde auto dans variables.cfg
     ├── ADXL_toggle.cfg         # Macros ADXL_ENABLE / ADXL_DISABLE + init_shaper au boot (toujours chargé)
-    └── INPUT_SHAPER.md         # ← Guide d'installation et workflow de calibration
+    ├── INPUT_SHAPER.md         # ← Installation guide and calibration workflow (EN)
+    └── INPUT_SHAPER_FR.md      # ← Guide d'installation et workflow de calibration (FR)
 ```
 
 Les includes dans `printer.cfg` :
