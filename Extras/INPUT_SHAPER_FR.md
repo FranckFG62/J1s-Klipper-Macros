@@ -9,6 +9,7 @@ Guide d'installation et d'utilisation de l'input shaper sur le Snapmaker J1/J1s.
 **FYSETC Portable Input Shaper v1** — module ADXL345 USB (RP2040).  
 Serial : `usb-Klipper_rp2040_E66160F4236A8F37-if00`
 
+Support: https://www.printables.com/model/1723184-adxl-fystec-pis-mount-for-snampmaker-j1
 ---
 
 ## Installation logicielle (une seule fois, via SSH)
